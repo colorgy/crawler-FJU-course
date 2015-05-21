@@ -2,32 +2,57 @@ require 'nokogiri'
 require 'json'
 require 'hashie'
 require 'pry'
+require 'capybara'
+require 'capybara/webkit'
 
-courses = []
-course_list = Nokogiri::HTML(File.read('courses.html'))
-course_list.css('#GV_CourseList').css('tr[style="color:#330099;background-color:White;"]').each_with_index do |row, index|
-  cols = row.css('td')
+class Spider
+  include Capybara::DSL
 
-  # a sub course, has main course code
-  next if not cols[2].text.gsub(/[^a-zA-Z0-9]/,'').empty?
+  def initialize
+    Capybara.current_driver = :webkit
+  end
 
-  begin
-    courses << {
-      serial_no: cols[0].text.to_i,
-      code: cols[1].text.strip,
-      department: cols[3].text,
-      department_code: cols[1].text.strip[0..2],
-      name: row.css("td #GV_CourseList_Lab_Coucna_#{index}")[0].text,
-      eng_name: row.css("td #GV_CourseList_Lab_Couena_#{index}")[0].text,
-      credits: cols[6].text.to_i,
-      required: cols[7].text == '必',
-      full_semester: cols[8].text == '學年',
-      lecturer: cols[9].text,
-      language: cols[10].text
-    }
-  rescue Exception => e
-    binding.pry
+  def crawl
+    visit "http://estu.fju.edu.tw/fjucourse/firstpage.aspx"
+    click_on '依基本開課資料查詢'
+    all('select[name="DDL_AvaDiv"] option')[1].select_option
+    click_on '查詢（Search）'
+    parse(html)
+  end
+
+  def parse(html)
+    courses = []
+    # course_list = Nokogiri::HTML(File.read('courses.html'))
+    course_list = Nokogiri::HTML(html)
+    course_list.css('#GV_CourseList').css('tr[style="color:#330099;background-color:White;"]').each_with_index do |row, index|
+      cols = row.css('td')
+
+      # a sub course, has main course code
+      next if not cols[2].text.gsub(/[^a-zA-Z0-9]/,'').empty?
+
+      begin
+        courses << {
+          # serial_no: cols[0].text.to_i,
+          code: cols[1] && cols[1].text.strip,
+          # department: cols[3].text,
+          # department_code: cols[1].text.strip[0..2],
+          name: row.css("td #GV_CourseList_Lab_Coucna_#{index}")[0].text,
+          # eng_name: row.css("td #GV_CourseList_Lab_Couena_#{index}")[0].text,
+          credits: cols[6].text.to_i,
+          required: cols[7].text == '必',
+          # full_semester: cols[8].text == '學年',
+          lecturer: cols[9].text,
+          # language: cols[10].text
+        }
+      rescue Exception => e
+        binding.pry
+      end
+    end
+
+    File.open('courses.json', 'w') {|f| f.write(JSON.pretty_generate(courses))}
   end
 end
 
-File.open('courses.json', 'w') {|f| f.write(JSON.pretty_generate(courses))}
+spider = Spider.new
+spider.crawl
+
