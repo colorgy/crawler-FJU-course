@@ -1,28 +1,59 @@
-require 'nokogiri'
 require 'json'
-require 'hashie'
-require 'pry'
-require 'capybara'
-require 'capybara/webkit'
+require 'logger'
+require 'capybara/poltergeist'
 
 class Spider
   include Capybara::DSL
+  attr_reader :progress
 
   def initialize
-    Capybara.current_driver = :webkit
+    Capybara.register_driver :poltergeist_debug do |app|
+      Capybara::Poltergeist::Driver.new(app,
+        {
+          inspector: true,
+        }
+      )
+    end
+
+    Capybara.current_driver = :poltergeist_debug
+    Capybara.javascript_driver = :poltergeist_debug
+
+    @done = false
+    @last_used = nil
+    @logger = Logger.new(STDOUT)
+    @running = false
   end
 
-  def crawl
-    visit "http://estu.fju.edu.tw/fjucourse/firstpage.aspx"
-    click_on '依基本開課資料查詢'
-    all('select[name="DDL_AvaDiv"] option')[1].select_option
-    click_on '查詢（Search）'
-    parse(html)
+  def start(force: false)
+    # if has crawl in last 2 hours and has file
+    return if @last_used && ((Time.now - @last_used) > 7200) && !force && @done || @running
+
+    Thread.start do
+      @running = true
+      @done = false
+      crawl_task
+    end
+  end
+
+  def crawl_task
+    @logger.info('run crawl_task!')
+    @progress = "task start!"
+    page.visit "http://estu.fju.edu.tw/fjucourse/firstpage.aspx"
+    page.click_on '依基本開課資料查詢'
+    sleep 2
+    @progress = "loading page..."
+    page.all('select[name="DDL_AvaDiv"] option')[1].select_option
+    sleep 3
+    @logger.info("ready to click...")
+    @logger.debug(find '查詢（Search）')
+    page.click_on '查詢（Search）'
+    parse(page.html)
   end
 
   def parse(html)
     courses = []
     # course_list = Nokogiri::HTML(File.read('courses.html'))
+    @progress = "start parsing webpage..."
     course_list = Nokogiri::HTML(html)
     course_list.css('#GV_CourseList').css('tr[style="color:#330099;background-color:White;"]').each_with_index do |row, index|
       datas = row.css('td')
@@ -57,6 +88,10 @@ class Spider
     end
 
     File.open('courses.json', 'w') {|f| f.write(JSON.pretty_generate(courses))}
+    @done = true
+    @last_used = Time.now
+    @running = false
+    puts "done!"
   end
 
   def parse_period(day, tim, loc)
@@ -73,8 +108,12 @@ class Spider
     end
     return ps
   end
+
+  def done?
+    return @done
+  end
 end
 
-spider = Spider.new
-spider.crawl
+# spider = Spider.new
+# spider.start_crawl
 

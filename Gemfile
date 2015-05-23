@@ -6,5 +6,9 @@ gem 'hashie'
 gem 'pry'
 
 gem 'capybara'
-gem "capybara-webkit"
-gem 'selenium-webdriver'
+gem 'poltergeist'
+
+gem 'sinatra'
+gem 'foreman'
+gem 'thin'
+gem 'workers'
