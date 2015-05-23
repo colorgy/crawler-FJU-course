@@ -1,13 +1,4 @@
-require 'rubygems'
-require 'bundler'
-
-Bundler.require
-
-require './spider'
-
-Dotenv.load
-
-$redis = Redis.new
+require './config'
 
 get '/' do
   SpiderWorker.perform_async

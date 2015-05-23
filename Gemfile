@@ -15,5 +15,6 @@ gem 'thin'
 gem 'dotenv'
 
 gem 'sidekiq'
+gem 'sidekiq-status'
 gem 'redis'
 gem 'slim'
