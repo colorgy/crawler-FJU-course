@@ -26,8 +26,7 @@ class Spider
 
   def start(force: false)
     # if has crawl in last 2 hours and has file
-    @logger.debug("last_used: #{@last_used}, done?: #{@done}, running?: #{@running}")
-
+    # @logger.debug("last_used: #{@last_used}, done?: #{@done}, running?: #{@running}")
     return if @last_used && ((Time.now - @last_used) < 7200) && !force && @done || @running
 
     @running = true
@@ -37,11 +36,11 @@ class Spider
 
   def crawl_task
     @logger.debug('run crawl_task!')
-    @progress = "task start!"
+    # @progress = "task start!"
     page.visit "http://estu.fju.edu.tw/fjucourse/firstpage.aspx"
     page.click_on '依基本開課資料查詢'
     sleep 2
-    @progress = "loading page..."
+    # @progress = "loading page..."
     @logger.debug("Progress: #{@progress}")
     page.all('select[name="DDL_AvaDiv"] option')[1].select_option
     sleep 3
@@ -55,8 +54,8 @@ class Spider
   def parse(html)
     courses = []
     # course_list = Nokogiri::HTML(File.read('courses.html'))
-    @progress = "start parsing webpage..."
-    @logger.debug("Progress: #{@progress}")
+    # @progress = "start parsing webpage..."
+    @logger.debug("Progress: start parsing webpage...")
     course_list = Nokogiri::HTML(html)
     course_list.css('#GV_CourseList').css('tr[style="color:#330099;background-color:White;"]').each_with_index do |row, index|
       datas = row.css('td')
@@ -95,7 +94,7 @@ class Spider
     @done = true
     @last_used = Time.now
     @running = false
-    puts "done!"
+    # puts "done!"
   end
 
   def parse_period(day, tim, loc)
@@ -113,17 +112,11 @@ class Spider
     return ps
   end
 
-  def done?
-    return @done
-  end
-
-  def progress
-    return @progress
-  end
 end
 
 class SpiderWorker
   include Sidekiq::Worker
+  include Sidekiq::Status::Worker
 
   @@logger = Logger.new(STDOUT)
   @@spider = Spider.new
@@ -132,18 +125,12 @@ class SpiderWorker
     $redis.lpush(msg, start_spider)
   end
 
+  def expiration
+    @expiration ||= 60 # 1 minute
+  end
+
   def start_spider
     @@spider.start
-  end
-
-  def self.done?
-    @@logger.debug("var done from Worker: #{@@spider.progress}")
-    @@spider.done?
-  end
-
-  def self.progress
-    @@logger.debug(@@spider.progress)
-    return @@spider.progress
   end
 
 end
