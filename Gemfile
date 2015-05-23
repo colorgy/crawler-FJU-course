@@ -11,4 +11,9 @@ gem 'poltergeist'
 gem 'sinatra'
 gem 'foreman'
 gem 'thin'
-gem 'workers'
+
+gem 'dotenv'
+
+gem 'sidekiq'
+gem 'redis'
+gem 'slim'

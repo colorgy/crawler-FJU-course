@@ -7,13 +7,19 @@ GEM
       rack (>= 1.0.0)
       rack-test (>= 0.5.4)
       xpath (~> 2.0)
+    celluloid (0.16.0)
+      timers (~> 4.0.0)
     cliver (0.3.2)
     coderay (1.1.0)
+    connection_pool (2.2.0)
     daemons (1.2.2)
+    dotenv (2.0.1)
     eventmachine (1.0.7)
     foreman (0.78.0)
       thor (~> 0.19.1)
     hashie (3.4.1)
+    hitimes (1.2.2)
+    json (1.8.2)
     method_source (0.8.2)
     mime-types (2.5)
     mini_portile (0.6.2)
@@ -34,21 +40,35 @@ GEM
       rack
     rack-test (0.6.3)
       rack (>= 1.0)
+    redis (3.2.1)
+    redis-namespace (1.5.2)
+      redis (~> 3.0, >= 3.0.4)
+    sidekiq (3.3.4)
+      celluloid (>= 0.16.0)
+      connection_pool (>= 2.1.1)
+      json
+      redis (>= 3.0.6)
+      redis-namespace (>= 1.3.1)
     sinatra (1.4.5)
       rack (~> 1.4)
       rack-protection (~> 1.4)
       tilt (~> 1.3, >= 1.3.4)
+    slim (3.0.3)
+      temple (~> 0.7.3)
+      tilt (>= 1.3.3, < 2.1)
     slop (3.6.0)
+    temple (0.7.5)
     thin (1.6.3)
       daemons (~> 1.0, >= 1.0.9)
       eventmachine (~> 1.0)
       rack (~> 1.0)
     thor (0.19.1)
     tilt (1.4.1)
+    timers (4.0.1)
+      hitimes
     websocket-driver (0.5.4)
       websocket-extensions (>= 0.1.0)
     websocket-extensions (0.1.2)
-    workers (0.3.0)
     xpath (2.0.0)
       nokogiri (~> 1.3)
 
@@ -57,11 +77,14 @@ PLATFORMS
 
 DEPENDENCIES
   capybara
+  dotenv
   foreman
   hashie
   nokogiri
   poltergeist
   pry
+  redis
+  sidekiq
   sinatra
+  slim
   thin
-  workers

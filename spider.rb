@@ -4,13 +4,13 @@ require 'capybara/poltergeist'
 
 class Spider
   include Capybara::DSL
-  attr_reader :progress
 
   def initialize
     Capybara.register_driver :poltergeist_debug do |app|
       Capybara::Poltergeist::Driver.new(app,
         {
           inspector: true,
+          timeout: 300
         }
       )
     end
@@ -26,27 +26,29 @@ class Spider
 
   def start(force: false)
     # if has crawl in last 2 hours and has file
-    return if @last_used && ((Time.now - @last_used) > 7200) && !force && @done || @running
+    @logger.debug("last_used: #{@last_used}, done?: #{@done}, running?: #{@running}")
 
-    Thread.start do
-      @running = true
-      @done = false
-      crawl_task
-    end
+    return if @last_used && ((Time.now - @last_used) < 7200) && !force && @done || @running
+
+    @running = true
+    @done = false
+    crawl_task
   end
 
   def crawl_task
-    @logger.info('run crawl_task!')
+    @logger.debug('run crawl_task!')
     @progress = "task start!"
     page.visit "http://estu.fju.edu.tw/fjucourse/firstpage.aspx"
     page.click_on '依基本開課資料查詢'
     sleep 2
     @progress = "loading page..."
+    @logger.debug("Progress: #{@progress}")
     page.all('select[name="DDL_AvaDiv"] option')[1].select_option
     sleep 3
-    @logger.info("ready to click...")
-    @logger.debug(find '查詢（Search）')
+    @logger.debug("ready to click...")
+    # @logger.debug(find '查詢（Search）')
     page.click_on '查詢（Search）'
+    @logger.debug("after click...")
     parse(page.html)
   end
 
@@ -54,6 +56,7 @@ class Spider
     courses = []
     # course_list = Nokogiri::HTML(File.read('courses.html'))
     @progress = "start parsing webpage..."
+    @logger.debug("Progress: #{@progress}")
     course_list = Nokogiri::HTML(html)
     course_list.css('#GV_CourseList').css('tr[style="color:#330099;background-color:White;"]').each_with_index do |row, index|
       datas = row.css('td')
@@ -87,7 +90,8 @@ class Spider
       end
     end
 
-    File.open('courses.json', 'w') {|f| f.write(JSON.pretty_generate(courses))}
+    Dir.mkdir('public') if !Dir.exist?('public')
+    File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(courses))}
     @done = true
     @last_used = Time.now
     @running = false
@@ -112,8 +116,36 @@ class Spider
   def done?
     return @done
   end
+
+  def progress
+    return @progress
+  end
 end
 
-# spider = Spider.new
-# spider.start_crawl
+class SpiderWorker
+  include Sidekiq::Worker
+
+  @@logger = Logger.new(STDOUT)
+  @@spider = Spider.new
+
+  def perform(msg="crawl course")
+    $redis.lpush(msg, start_spider)
+  end
+
+  def start_spider
+    @@spider.start
+  end
+
+  def self.done?
+    @@logger.debug("var done from Worker: #{@@spider.progress}")
+    @@spider.done?
+  end
+
+  def self.progress
+    @@logger.debug(@@spider.progress)
+    return @@spider.progress
+  end
+
+end
+
 

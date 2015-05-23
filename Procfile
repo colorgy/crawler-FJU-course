@@ -1,2 +1,2 @@
-web: rackup -s puma -p $PORT
-web: rackup -s thin -p $PORT -e $RACK_ENV
+web: rackup -s thin -p $PORT
+worker: bundle exec sidekiq -r ./app.rb
