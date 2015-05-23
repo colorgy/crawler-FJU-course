@@ -89,8 +89,10 @@ class Spider
       end
     end
 
-    Dir.mkdir('public') if !Dir.exist?('public')
-    File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(courses))}
+    @logger.debug(courses[1..10])
+    Dir.mkdir('tmp') if !Dir.exist?('tmp')
+    File.open('./tmp/courses.json', 'w') {|f| f.write(JSON.pretty_generate(courses))}
+    page.driver.quit
     @done = true
     @last_used = Time.now
     @running = false
@@ -121,8 +123,12 @@ class SpiderWorker
   @@logger = Logger.new(STDOUT)
   @@spider = Spider.new
 
-  def perform(msg="crawl course")
-    $redis.lpush(msg, start_spider)
+  def perform(msg="crawl")
+    if msg == "crawl"
+      $redis.lpush(msg, start_spider)
+    elsif
+      $redis.lpush(msg, serve_api)
+    end
   end
 
   def expiration
@@ -131,6 +137,15 @@ class SpiderWorker
 
   def start_spider
     @@spider.start
+  end
+
+  def serve_api
+    if File.exist?('./tmp/courses.json')
+      content_type :json
+      return File.read('./tmp/courses.json')
+    else
+      return {status: 'has no crawl data yet'}.to_json
+    end
   end
 
 end

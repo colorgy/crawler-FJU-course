@@ -6,6 +6,8 @@ $redis = Redis.new(url: ENV['REDISTOGO_URL'])
 
 processed ||= Sidekiq::Stats.new.processed
 
+$root = File.dirname(__FILE__)
+
 get '/' do
   error 401, { status: 'bad key' }.to_json if ENV['API_KEY'] != params[:key]
 
@@ -45,10 +47,5 @@ get '/force' do
 end
 
 get '/courses.json' do
-  if File.exist?(File.join('public', 'courses.json'))
-    content_type :json
-    File.read(File.join('public', 'courses.json'))
-  else
-    return {status: 'has no crawl data yet'}.to_json
-  end
+  SpiderWorker.new.perform("api task")
 end
