@@ -2,7 +2,7 @@ require './config'
 require 'sidekiq/api'
 require 'json'
 
-$redis = Redis.new
+$redis = Redis.new(url: ENV['REDISTOGO_URL'])
 
 processed ||= Sidekiq::Stats.new.processed
 
@@ -22,7 +22,6 @@ get '/' do
       return JSON.pretty_generate({status: 'crawling...', processed: processed})
     end
   end
-
 end
 
 get '/force' do
