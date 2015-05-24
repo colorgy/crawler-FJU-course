@@ -9,6 +9,7 @@ gem 'pry'
 
 gem 'capybara'
 gem 'poltergeist'
+gem 'rest-client'
 
 gem 'sinatra'
 gem 'foreman'

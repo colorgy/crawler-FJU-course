@@ -4,7 +4,7 @@ require 'bundler'
 Bundler.require
 Dotenv.load
 
-require './spider'
+Dir[File.dirname(__FILE__) + '/app/*.rb'].each {|file| require file }
 
 Sidekiq.configure_client do |config|
   config.client_middleware do |chain|

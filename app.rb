@@ -13,7 +13,7 @@ get '/' do
 
   workers_size = Sidekiq::Stats.new.workers_size
   if workers_size == 0 && processed == Sidekiq::Stats.new.processed
-    job_id = SpiderWorker.perform_async
+    job_id = CrawlWorker.perform_async
     return JSON.pretty_generate({status: 'task started', processed: processed})
   else
     # while running task
@@ -32,7 +32,7 @@ get '/force' do
   workers_size = Sidekiq::Stats.new.workers_size
   if processed == Sidekiq::Stats.new.processed
     if workers_size == 0
-      job_id = SpiderWorker.perform_async(force: true)
+      job_id = CrawlWorker.perform_async(force: true)
       return JSON.pretty_generate({status: 'task started', processed: processed})
 
     else
