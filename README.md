@@ -7,7 +7,7 @@
 ```
     GET /courses.json
 ```
-本來想弄 Course API 端點兒，不過因為 worker dyno / web dyno 不互通，要在串 s3 之類的 file server，就先 pending 惹。
+用 redis 存
 
 
 2.
@@ -26,4 +26,4 @@ sidekiq 的 web monitor
 ```
     GET/force?key=api_key_here
 ```
-強制重跑 task，預設間隔為兩小時
+強制重跑 task，<del>預設間隔為兩小時</del>(還沒弄)
