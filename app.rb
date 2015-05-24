@@ -47,5 +47,10 @@ get '/force' do
 end
 
 get '/courses.json' do
-  SpiderWorker.new.perform("api task")
+  if $redis.exists("course")
+    content_type :json
+    return $redis.get("course")
+  else
+    return {status: 'has no crawl data yet'}.to_json
+  end
 end
