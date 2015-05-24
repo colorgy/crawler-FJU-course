@@ -105,10 +105,10 @@ class FjuCrawler
         periods: periods,
       }
     end
-    # $redis.set("course", JSON.pretty_generate(@courses))
+    $redis.set("course", JSON.pretty_generate(@courses))
     puts @courses[1..3]
     # binding.pry
-    File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(@courses))}
+    # File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(@courses))}
   end
 
   def parse_period(day, tim, loc)
