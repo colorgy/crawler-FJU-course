@@ -1,7 +1,3 @@
-require 'nokogiri'
-require 'rest-client'
-require 'pry'
-
 module Crawler
   module ASPEssential
     attr_reader :current_url
@@ -111,7 +107,7 @@ class FjuCrawler
     end
     # $redis.set("course", JSON.pretty_generate(@courses))
     puts @courses[1..3]
-    binding.pry
+    # binding.pry
     File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(@courses))}
   end
 
@@ -129,7 +125,4 @@ class FjuCrawler
     end
     return ps
   end
-
 end
-
-FjuCrawler.new.course
