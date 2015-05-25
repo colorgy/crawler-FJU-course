@@ -1,5 +1,15 @@
 輔仁課程爬蟲
 =========
+# Deployments
+
+[![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/colorgy/crawler-FJU-course/tree/master)
+
+Deploy 後
+把 dyno type 設成 free 然後跑
+```
+    heroku ps:scale worker=1
+```
+
 
 ## Endpoints
 
