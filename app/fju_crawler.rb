@@ -1,5 +1,5 @@
 class FjuCrawler
-  include Crawler::ASPEssential
+  include XDDCrawler::ASPEssential
 
   def initialize(year: (Time.now.month.between?(1, 7) ? Time.now.year - 1 : Time.now.year),
                  term: (Time.now.month.between?(2, 7) ? 2 : 1))

@@ -4,7 +4,6 @@ require 'bundler'
 Bundler.require
 Dotenv.load
 
-Dir[File.dirname(__FILE__) + '/lib/*.rb'].each {|file| require file }
 Dir[File.dirname(__FILE__) + '/app/*.rb'].each {|file| require file }
 
 Sidekiq.configure_client do |config|

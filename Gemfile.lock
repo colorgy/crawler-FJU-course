@@ -1,6 +1,9 @@
 GEM
   remote: https://rubygems.org/
   specs:
+    XDDCrawler (0.0.1)
+      nokogiri (~> 1.6, >= 1.6.6.2)
+      rest-client (~> 1.8, >= 1.8.0)
     celluloid (0.16.0)
       timers (~> 4.0.0)
     coderay (1.1.0)
@@ -70,6 +73,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  XDDCrawler
   dotenv
   foreman
   hashie

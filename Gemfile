@@ -19,3 +19,5 @@ gem 'sidekiq'
 gem 'sidekiq-status'
 gem 'redis'
 gem 'slim'
+
+gem 'XDDCrawler'
