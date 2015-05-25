@@ -7,8 +7,6 @@ gem 'hashie'
 
 gem 'pry'
 
-gem 'capybara'
-gem 'poltergeist'
 gem 'rest-client'
 
 gem 'sinatra'

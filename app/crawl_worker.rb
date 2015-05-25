@@ -1,4 +1,4 @@
-require_relative './crawler.rb'
+require_relative './fju_crawler.rb'
 
 class CrawlWorker
   include Sidekiq::Worker

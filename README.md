@@ -1,6 +1,6 @@
 輔仁課程爬蟲
 =========
-# Deployments
+## Deployments
 
 [![Deploy](https://www.herokucdn.com/deploy/button.png)](https://heroku.com/deploy?template=https://github.com/colorgy/crawler-FJU-course/tree/master)
 
@@ -37,3 +37,12 @@ sidekiq 的 web monitor
     GET/force?key=api_key_here
 ```
 強制重跑 task，<del>預設間隔為兩小時</del>(還沒弄)
+
+## Devlopement
+
+```
+    bundle
+    cp .sample.env .env
+    redis-server /usr/local/etc/redis.conf # make sure you've install redis
+    foreman start
+```
