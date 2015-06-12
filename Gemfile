@@ -20,4 +20,9 @@ gem 'sidekiq-status'
 gem 'redis'
 gem 'slim'
 
-gem 'XDDCrawler'
+gem 'crawler_rocks'
+
+gem 'poltergeist'
+gem 'capybara'
+
+gem 'selenium-webdriver'
