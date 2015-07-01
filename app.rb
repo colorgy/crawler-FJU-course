@@ -1,56 +1,36 @@
-require './config'
-require 'sidekiq/api'
-require 'json'
+require 'web_task_runner'
 
-$redis = Redis.new(url: ENV['REDISTOGO_URL'])
+# Require the crawler
+Dir[File.dirname(__FILE__) + '/crawler/*.rb'].each { |file| require file }
 
-processed ||= Sidekiq::Stats.new.processed
+class CrawlWorker < WebTaskRunner::TaskWorker
+  def exec
+    year = (Time.now.month.between?(1, 7) ? Time.now.year - 1 : Time.now.year)
+    term = (Time.now.month.between?(2, 7) ? 2 : 1)
 
-$root = File.dirname(__FILE__)
+    year = params[:year].to_i if params[:year]
+    term = params[:term].to_i if params[:term]
 
-get '/' do
-  error 401, { status: 'bad key' }.to_json if ENV['API_KEY'] != params[:key]
+    puts "Starting crawler for #{year}-#{term} ..."
 
-  workers_size = Sidekiq::Stats.new.workers_size
-  if workers_size == 0 && processed == Sidekiq::Stats.new.processed
-    job_id = CrawlWorker.perform_async
-    return JSON.pretty_generate({status: 'task started', processed: processed})
-  else
-    # while running task
-    if Sidekiq::Stats.new.processed == (processed + 1)
-      processed = Sidekiq::Stats.new.processed
-      return JSON.pretty_generate({status: 'done', processed: processed})
-    else
-      return JSON.pretty_generate({status: 'crawling...', processed: processed})
-    end
+    crawler = FjuCourseCrawler.new(
+      year: year,
+      term: term,
+      update_progress: proc { |payload| WebTaskRunner.job_1_progress = payload[:progress] },
+      after_each: proc do |payload|
+        course = payload[:course]
+        print "Saving course #{course[:code]} ...\n"
+        RestClient.put("#{ENV['DATA_MANAGEMENT_API_ENDPOINT']}/#{course[:code]}?key=#{ENV['DATA_MANAGEMENT_API_KEY']}",
+          { ENV['DATA_NAME'] => course }
+        )
+        # WebTaskRunner.job_1_progress = payload[:progress]
+      end
+    )
+
+    courses = crawler.courses()
+
+    # TODO: delete the courses which course code not present in th list
   end
 end
 
-get '/force' do
-  error 401, { status: 'bad key' }.to_json if ENV['API_KEY'] != params[:key]
-
-  workers_size = Sidekiq::Stats.new.workers_size
-  if processed == Sidekiq::Stats.new.processed
-    if workers_size == 0
-      job_id = CrawlWorker.perform_async(force: true)
-      return JSON.pretty_generate({status: 'task started', processed: processed})
-
-    else
-      return JSON.pretty_generate({status: 'crawling...', processed: processed})
-    end
-
-  elsif Sidekiq::Stats.new.processed == (processed + 1)
-    processed = Sidekiq::Stats.new.processed
-    return JSON.pretty_generate({status: 'done', processed: processed})
-  end
-
-end
-
-get '/courses.json' do
-  if $redis.exists("course")
-    content_type :json
-    return $redis.get("course")
-  else
-    return {status: 'has no crawl data yet'}.to_json
-  end
-end
+WebTaskRunner.jobs << CrawlWorker

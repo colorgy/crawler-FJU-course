@@ -38,7 +38,6 @@ class FjuCourseCrawler
 
     Capybara.javascript_driver = :poltergeist
     Capybara.current_driver = :poltergeist
-
   end
 
   def courses
@@ -85,12 +84,13 @@ class FjuCourseCrawler
       # periods.concat parse_period(datas[15] && datas[15].text, datas[16] && datas[16].text, datas[17] && datas[17].text)
       # periods.concat parse_period(datas[18] && datas[18].text, datas[19] && datas[19].text, datas[20] && datas[20].text)
       # periods.each_with_index {|d,i| periods.delete_at(i) if d.nil? }
-      code = datas[1] && datas[1].text.strip
-      code = "#{@year}-#{@term}-#{code}"
+      general_code = datas[1] && datas[1].text.strip
+      code = "#{@year}-#{@term}-#{general_code}"
 
       @courses << {
         # serial_no: datas[0].text.to_i,
         code: code,
+        general_code: general_code,
         department: datas[3].text,
         department_code: datas[1].text.strip[0..2],
         name: name,
@@ -133,7 +133,6 @@ class FjuCourseCrawler
     # puts @courses[1..3]
     # binding.pry
     # File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(@courses))}
-    File.write('courses.json', JSON.pretty_generate(@courses))
     @courses
   end
 
@@ -161,5 +160,5 @@ class FjuCourseCrawler
   end
 end
 
-cc = FjuCourseCrawler.new(year: 2014, term: 1)
-cc.courses
+# cc = FjuCourseCrawler.new(year: 2014, term: 1)
+# File.write('fju_courses.json', JSON.pretty_generate(cc.courses))
