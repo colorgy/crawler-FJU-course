@@ -1,8 +1,12 @@
 require 'crawler_rocks'
 require 'pry'
 require 'json'
+
 require 'capybara'
 require 'capybara/poltergeist'
+
+require 'thread'
+require 'thwait'
 
 class FjuCourseCrawler
   include CrawlerRocks::DSL
@@ -133,6 +137,17 @@ class FjuCourseCrawler
     # puts @courses[1..3]
     # binding.pry
     # File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(@courses))}
+    @courses.each do |course|
+      sleep(1) until (
+        @threads.delete_if { |t| !t.status };  # remove dead (ended) threads
+        @threads.count < ( (ENV['MAX_THREADS'] && ENV['MAX_THREADS'].to_i) || 30)
+      )
+      @threads << Thread.new {
+        @after_each_proc.call(course: course) if @after_each_proc
+      }
+    end
+
+    ThreadsWait.all_waits(*@threads)
     @courses
   end
 
