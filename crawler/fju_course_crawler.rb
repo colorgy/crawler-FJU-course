@@ -1,5 +1,8 @@
 require 'crawler_rocks'
+
 require 'pry'
+require 'pry-remote'
+
 require 'json'
 
 require 'capybara'
@@ -37,7 +40,7 @@ class FjuCourseCrawler
     end
 
     Capybara.register_driver :poltergeist do |app|
-      Capybara::Poltergeist::Driver.new(app,  js_errors: false, timeout: 300)
+      Capybara::Poltergeist::Driver.new(app,  js_errors: false, timeout: 600)
     end
 
     Capybara.javascript_driver = :poltergeist
@@ -46,19 +49,25 @@ class FjuCourseCrawler
 
   def courses
     @courses = []
+    @threads = []
 
     visit @query_url
 
     click_on '依基本開課資料查詢'
-    sleep 1
-    # for loop
+    sleep 8
+    # Todos: for loop
     all('select[name="DDL_AvaDiv"] option')[1].select_option
-    sleep 1
+    sleep 8
+    puts "Searching......!!!"
     click_on '查詢（Search）'
 
+    puts "Parsing html......!!!"
     @doc = Nokogiri::HTML(html)
 
-    @doc.css('#GV_CourseList').css('tr')[1..-1].each_with_index do |row, index|
+    page.driver.quit
+
+    rows = @doc.css('#GV_CourseList').css('tr')[1..-1]
+    rows && rows.each_with_index do |row, index|
       datas = row.css('td')
 
       # a sub course, has main course code
@@ -175,5 +184,5 @@ class FjuCourseCrawler
   end
 end
 
-# cc = FjuCourseCrawler.new(year: 2014, term: 1)
+# cc = FjuCourseCrawler.new(year: 2014, term: 2)
 # File.write('fju_courses.json', JSON.pretty_generate(cc.courses))
