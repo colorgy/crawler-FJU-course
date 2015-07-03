@@ -4,16 +4,13 @@ require 'pry'
 require 'pry-remote'
 
 require 'json'
-
-require 'capybara'
-require 'capybara/poltergeist'
+require 'iconv'
 
 require 'thread'
 require 'thwait'
 
 class FjuCourseCrawler
   include CrawlerRocks::DSL
-  include Capybara::DSL
 
   DAYS = {
     "一" => 1,
@@ -27,8 +24,7 @@ class FjuCourseCrawler
 
   def initialize year: current_year, term: current_term, update_progress: nil, after_each: nil, params: nil
 
-    # @year = params && params["year"].to_i || year
-    @year = current_year
+    @year = params && params["year"].to_i || year
     @term = params && params["term"].to_i || term
     @update_progress_proc = update_progress
     @after_each_proc = after_each
@@ -39,34 +35,63 @@ class FjuCourseCrawler
       @query_url = "http://estu.fju.edu.tw/fjucourse/Secondpage.aspx"
     end
 
-    Capybara.register_driver :poltergeist do |app|
-      Capybara::Poltergeist::Driver.new(app,  js_errors: false, timeout: 600)
-    end
-
-    Capybara.javascript_driver = :poltergeist
-    Capybara.current_driver = :poltergeist
+    @ic = Iconv.new("utf-8//translit//IGNORE", "utf-8")
   end
 
   def courses
     @courses = []
     @threads = []
 
-    visit @query_url
+    # step 1
+    r = RestClient.get @query_url
+    @doc = Nokogiri::HTML(@ic.iconv r)
 
-    click_on '依基本開課資料查詢'
-    sleep 8
-    # Todos: for loop
-    all('select[name="DDL_AvaDiv"] option')[1].select_option
-    sleep 8
-    puts "Searching......!!!"
-    click_on '查詢（Search）'
+    # step 2
+    r = RestClient.post @query_url, get_view_state.merge({
+      "But_BaseData" => "依基本開課資料查詢"
+    })
+    @doc = Nokogiri::HTML(@ic.iconv r)
 
-    puts "Parsing html......!!!"
-    @doc = Nokogiri::HTML(html)
+    # step 3 選擇學制
+    r = RestClient.post @query_url, get_view_state.merge({
+      "__EVENTTARGET" => "DDL_AvaDiv",
+      "DDL_AvaDiv" => 'D',
+      "DDL_Section_S" => nil,
+      "DDL_Section_E" => nil,
+    })
+    @doc = Nokogiri::HTML(@ic.iconv r)
 
-    page.driver.quit
+    # step 查詢
+    r = RestClient.post @query_url, get_view_state.merge({
+      "DDL_AvaDiv" => 'D',
+      "DDL_Avadpt" => 'All-全部',
+      "DDL_Class" => nil,
+      "DDL_Section_S" => nil,
+      "DDL_Section_E" => nil,
+      "But_Run" => '查詢（Search）',
+    })
+    doc = Nokogiri::HTML(@ic.iconv r)
 
-    rows = @doc.css('#GV_CourseList').css('tr')[1..-1]
+    parse_course_list(doc)
+
+    @courses.each do |course|
+      sleep(1) until (
+        @threads.delete_if { |t| !t.status };  # remove dead (ended) threads
+        @threads.count < ( (ENV['MAX_THREADS'] && ENV['MAX_THREADS'].to_i) || 30)
+      )
+      @threads << Thread.new {
+        @after_each_proc.call(course: course) if @after_each_proc
+      }
+    end
+
+    ThreadsWait.all_waits(*@threads)
+    @courses
+  end
+
+  def parse_course_list doc
+    @courses ||= []
+
+    rows = doc.xpath('//table[@id="GV_CourseList"]/tr[position()>1]')
     rows && rows.each_with_index do |row, index|
       datas = row.css('td')
 
@@ -142,38 +167,7 @@ class FjuCourseCrawler
         location_9: course_locations[8],
       }
     end
-    # $redis.set("course", JSON.pretty_generate(@courses))
-    # puts @courses[1..3]
-    # binding.pry
-    # File.open('public/courses.json', 'w') {|f| f.write(JSON.pretty_generate(@courses))}
-    @courses.each do |course|
-      sleep(1) until (
-        @threads.delete_if { |t| !t.status };  # remove dead (ended) threads
-        @threads.count < ( (ENV['MAX_THREADS'] && ENV['MAX_THREADS'].to_i) || 30)
-      )
-      @threads << Thread.new {
-        @after_each_proc.call(course: course) if @after_each_proc
-      }
-    end
-
-    ThreadsWait.all_waits(*@threads)
-    @courses
   end
-
-  # def parse_period(day, tim, loc)
-  #   ps = []
-  #   m = tim.match(/.(?<s>\d)\-.(?<e>\d)/)
-  #   if !!m
-  #     (m[:s].to_i..m[:e].to_i).each do |period|
-  #       chars = []
-  #       chars << day
-  #       chars << period
-  #       chars << loc
-  #       ps << chars.join(',')
-  #     end
-  #   end
-  #   return ps
-  # end
 
   def current_year
     (Time.now.month.between?(1, 7) ? Time.now.year - 1 : Time.now.year)
@@ -184,5 +178,9 @@ class FjuCourseCrawler
   end
 end
 
-# cc = FjuCourseCrawler.new(year: 2014, term: 2)
+# cc = FjuCourseCrawler.new(year: 2014, term: 1)
+
+# cc.parse_course_list(Nokogiri::HTML(File.read('courses.htm')))
+# File.write('1031_fju_courses.json', JSON.pretty_generate(cc.instance_variable_get("@courses")))
+
 # File.write('fju_courses.json', JSON.pretty_generate(cc.courses))

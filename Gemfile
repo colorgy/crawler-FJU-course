@@ -7,8 +7,7 @@ gem 'hashie'
 gem 'pry'
 gem 'pry-remote'
 
+gem 'iconv'
+
 gem 'crawler_rocks'
 gem 'web_task_runner'
-
-gem 'poltergeist'
-gem 'capybara'
